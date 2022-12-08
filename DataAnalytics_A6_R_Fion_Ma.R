@@ -101,8 +101,14 @@ summary(lin_response1) # 426.08
 
 lin_response_tavg <- lm(EMS_Richmond_10305_2012$INCIDENT_RESPONSE_SECONDS_QY ~ 
                           EMS_Richmond_10305_2012$avg_temp)
-summary(lin_response_tavg) # 586.429 - 2.847*avg_temp, p-value = 1.291e-05
+summary(lin_response_tavg) # 586.429 - 2.847*avg_temp, p-value = 1.291e-05, st.dev. = 0.652
 
+lin_response2 <- lm(EMS_Richmond_10305_2012$INCIDENT_TRAVEL_TM_SECONDS_QY ~ 1)
+summary(lin_response2) # 383.8
+
+lin_response_tavg2 <- lm(EMS_Richmond_10305_2012$INCIDENT_TRAVEL_TM_SECONDS_QY ~ 
+                           EMS_Richmond_10305_2012$avg_temp)
+summary(lin_response_tavg2) # 528.1238 - 2.5623*avg_temp, p-value = 0.00161, st.dev. = 0.8119
 
 # Logistic Regression
 log_response1 <- glm(as.factor(EMS_Richmond_10305_2012$INCIDENT_RESPONSE_SECONDS_QY) ~ 1, 
@@ -122,6 +128,22 @@ exp(confint(log_response_tavg)) #                     2.5 %     97.5 %
 # (Intercept)                      52.4798123 423.786438
 # EMS_Richmond_10305_2012$avg_temp  0.9782479   1.012952
 
+log_response2 <- glm(as.factor(EMS_Richmond_10305_2012$INCIDENT_TRAVEL_TM_SECONDS_QY) ~ 1, 
+                     family="binomial")
+summary(log_response2) # 4.3114
+exp(coefficients(log_response2)) # (Intercept) 
+#    74.54412  
+exp(confint(log_response2)) #     2.5 %    97.5 % 
+#  59.20777 95.61622 
+
+log_response_tavg2 <- glm(as.factor(EMS_Richmond_10305_2012$INCIDENT_TRAVEL_TM_SECONDS_QY) ~
+                            EMS_Richmond_10305_2012$avg_temp, family="binomial")
+summary(log_response_tavg2) # 4.3332621 - 0.0003879*avg_temp
+exp(coefficients(log_response_tavg2)) # (Intercept) EMS_Richmond_10305_2012$avg_temp 
+# 76.1924255                        0.9996122
+exp(confint(log_response_tavg2)) #          2.5 %     97.5 %
+# (Intercept)                      33.6548125 181.764862
+# EMS_Richmond_10305_2012$avg_temp  0.9853938   1.014045
 
 # KNN
 set.seed(100)

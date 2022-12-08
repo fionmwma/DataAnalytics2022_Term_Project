@@ -32,6 +32,10 @@ table(EMS_Richmond_10305$year)
 Weather[c('month', 'day', 'year')] <- str_split_fixed(Weather$DATE, '/', 3)
 str(Weather)
 
+table(Weather$month)
+table(Weather$day)
+table(Weather$year)
+
 #Combined_DF <- merge(x = EMS_Richmond_10305, y = Weather, by = "year")
 
 
@@ -65,6 +69,8 @@ str(EMS_Richmond_10305_2012)
 
 
 #EDA
+summary(EMS_Richmond_10305_2012$avg_temp)
+
 hist(as.double(EMS_Richmond_10305_2012$month), main = 'Histogram of EMS Month Variable for 2012')
 hist(as.double(EMS_Richmond_10305_2012$day), main = 'Histogram of EMS Day Variable for 2012')
 hist(as.double(EMS_Richmond_10305_2012$year), main = 'Histogram of EMS Year Variable for 2012')

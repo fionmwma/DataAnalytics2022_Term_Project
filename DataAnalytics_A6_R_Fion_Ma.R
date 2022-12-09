@@ -4,6 +4,7 @@
 library(stringr)
 library(class)
 library(ggplot2)
+library(caret)
 
 
 # Load Datasets
@@ -111,39 +112,34 @@ lin_response_tavg2 <- lm(EMS_Richmond_10305_2012$INCIDENT_TRAVEL_TM_SECONDS_QY ~
 summary(lin_response_tavg2) # 528.1238 - 2.5623*avg_temp, p-value = 0.00161, st.dev. = 0.8119
 
 # Logistic Regression
-log_response1 <- glm(as.factor(EMS_Richmond_10305_2012$INCIDENT_RESPONSE_SECONDS_QY) ~ 1, 
-                     family="binomial")
-summary(log_response1) # 4.706
-exp(coefficients(log_response1)) # (Intercept) 
-#    110.6087 
-exp(confint(log_response1)) #     2.5 %    97.5 % 
-#  83.83577 150.02121 
+summary(EMS_Richmond_10305_2012$INCIDENT_TRAVEL_TM_SECONDS_QY)
+res_times <- cut(EMS_Richmond_10305_2012$INCIDENT_RESPONSE_SECONDS_QY, br=c(0,344,30831), 
+                 labels=c('fast','slow'))
+res_times <- as.factor(res_times)
+summary(res_times) # fast slow NA's 
+# 2528 2560  531 
 
-log_response_tavg <- glm(as.factor(EMS_Richmond_10305_2012$INCIDENT_RESPONSE_SECONDS_QY) ~
-                           EMS_Richmond_10305_2012$avg_temp, family="binomial")
-summary(log_response_tavg) # 4.96248 - 0.004504*avg_temp
-exp(coefficients(log_response_tavg)) # (Intercept) EMS_Richmond_10305_2012$avg_temp 
-# 142.9478064                        0.9955062 
-exp(confint(log_response_tavg)) #                     2.5 %     97.5 %
-# (Intercept)                      52.4798123 423.786438
-# EMS_Richmond_10305_2012$avg_temp  0.9782479   1.012952
+trav_times <- cut(EMS_Richmond_10305_2012$INCIDENT_RESPONSE_SECONDS_QY, br=c(0,319,61418), 
+                  labels=c('fast','slow'))
+trav_times <- as.factor(trav_times)
+summary(trav_times) # fast slow NA's 
+# 2242 2846  531
 
-log_response2 <- glm(as.factor(EMS_Richmond_10305_2012$INCIDENT_TRAVEL_TM_SECONDS_QY) ~ 1, 
-                     family="binomial")
-summary(log_response2) # 4.3114
-exp(coefficients(log_response2)) # (Intercept) 
-#    74.54412  
-exp(confint(log_response2)) #     2.5 %    97.5 % 
-#  59.20777 95.61622 
+log_response1 <- glm(res_times ~ EMS_Richmond_10305_2012$avg_temp, family="binomial")
+summary(log_response1) # 0.159498 - 0.002609*avg_temp, p-value = 0.120
+exp(coefficients(log_response1)) # (Intercept) EMS_Richmond_10305_2012$avg_temp 
+#  1.1729214                        0.9973946 
+exp(confint(log_response1)) #                     2.5 %     97.5 %
+# (Intercept)                      0.9670647 1.422830
+# EMS_Richmond_10305_2012$avg_temp 0.9941212 1.000676
 
-log_response_tavg2 <- glm(as.factor(EMS_Richmond_10305_2012$INCIDENT_TRAVEL_TM_SECONDS_QY) ~
-                            EMS_Richmond_10305_2012$avg_temp, family="binomial")
-summary(log_response_tavg2) # 4.3332621 - 0.0003879*avg_temp
-exp(coefficients(log_response_tavg2)) # (Intercept) EMS_Richmond_10305_2012$avg_temp 
-# 76.1924255                        0.9996122
-exp(confint(log_response_tavg2)) #          2.5 %     97.5 %
-# (Intercept)                      33.6548125 181.764862
-# EMS_Richmond_10305_2012$avg_temp  0.9853938   1.014045
+log_response2 <- glm(trav_times ~ EMS_Richmond_10305_2012$avg_temp, family="binomial")
+summary(log_response2) # 0.335946 - 0.001729*avg_temp, p-value = 0.305747
+exp(coefficients(log_response2)) # (Intercept) EMS_Richmond_10305_2012$avg_temp 
+# 1.3992636                        0.9982728
+exp(confint(log_response2)) #          2.5 %     97.5 %
+# (Intercept)                      1.1521249 1.700154
+# EMS_Richmond_10305_2012$avg_temp 0.9949747 1.001580
 
 # KNN
 set.seed(100)
@@ -152,77 +148,84 @@ trainsample <- EMS_Richmond_10305_2012[split==1,]
 testsample <- EMS_Richmond_10305_2012[split==2,]
 train <- trainsample[,c("INCIDENT_RESPONSE_SECONDS_QY","avg_temp")]
 test <- testsample[,c("INCIDENT_RESPONSE_SECONDS_QY","avg_temp")]
+train2 <- trainsample[,c("INCIDENT_TRAVEL_TM_SECONDS_QY","avg_temp")]
+test2 <- testsample[,c("INCIDENT_TRAVEL_TM_SECONDS_QY","avg_temp")]
 
 train <- train[complete.cases(train),]
 test <- test[complete.cases(test),]
+train2 <- train2[complete.cases(train2),]
+test2 <- test2[complete.cases(test2),]
+
+
 sqrt(3602) # round to 61
+sqrt(3604) # round to 61
 predict_response <- knn(train=train, test=test, cl=train$INCIDENT_RESPONSE_SECONDS_QY, k=61)
 table(predict_response)
 predict_response <- as.character(predict_response)
 predict_response <- as.numeric(predict_response)
+predict_response2 <- knn(train=train2, test=test2, cl=train2$INCIDENT_TRAVEL_TM_SECONDS_QY, k=61)
+table(predict_response2)
+predict_response2 <- as.character(predict_response2)
+predict_response2 <- as.numeric(predict_response2)
 
 par(mfrow=c(1,2))
 plot(table(EMS_Richmond_10305_2012$INCIDENT_RESPONSE_SECONDS_QY), main = 'Incident Response Times')
 plot(table(predict_response), main = 'KNN Predict Response Times')
+plot(table(EMS_Richmond_10305_2012$INCIDENT_TRAVEL_TM_SECONDS_QY), main = 'Incident Travel Times')
+plot(table(predict_response2), main = 'KNN Predict Travel Times')
 
 
 # K-means
 table(EMS_Richmond_10305_2012$COMMUNITYDISTRICT)
 table(EMS_Richmond_10305_2012$POLICEPRECINCT)
+EMS_Richmond_10305_2012 <- EMS_Richmond_10305_2012[complete.cases(EMS_Richmond_10305_2012),]
 ggplot(EMS_Richmond_10305_2012,aes(x = index, y = INCIDENT_RESPONSE_SECONDS_QY, 
                                    col = COMMUNITYDISTRICT)) + geom_point()
 ggplot(EMS_Richmond_10305_2012,aes(x = index, y = INCIDENT_RESPONSE_SECONDS_QY, 
                                    col = POLICEPRECINCT)) + geom_point()
+ggplot(EMS_Richmond_10305_2012,aes(x = index, y = INCIDENT_TRAVEL_TM_SECONDS_QY, 
+                                   col = COMMUNITYDISTRICT)) + geom_point()
+ggplot(EMS_Richmond_10305_2012,aes(x = index, y = INCIDENT_TRAVEL_TM_SECONDS_QY, 
+                                   col = POLICEPRECINCT)) + geom_point()
 
 set.seed(100)
-k.max1 <- 3
-k.max2 <- 2
-wss_com <- sapply(1:k.max1,function(k){kmeans(EMS_Richmond_10305_2012$COMMUNITYDISTRICT,
+k.max <- 6
+wss_res <- sapply(1:k.max,function(k){kmeans(EMS_Richmond_10305_2012$INCIDENT_RESPONSE_SECONDS_QY,
+                                             k,nstart = 20,iter.max = 20)$tot.withinss})
+wss_trav <- sapply(1:k.max,function(k){kmeans(EMS_Richmond_10305_2012$INCIDENT_TRAVEL_TM_SECONDS_QY,
                                               k,nstart = 20,iter.max = 20)$tot.withinss})
-wss_pol <- sapply(1:k.max2,function(k){kmeans(EMS_Richmond_10305_2012$POLICEPRECINCT,
-                                              k,nstart = 20,iter.max = 20)$tot.withinss})
 
-plot(1:k.max1,wss_com,type = "b",xlab = "Number of clusters(K)",
-     ylab = "Within cluster sum of squares for COMMUNITYDISTRICT")
-plot(1:k.max2,wss_pol,type = "b",xlab = "Number of clusters(K)",
-     ylab = "Within cluster sum of squares for POLICEPRECINCT")
+plot(1:k.max,wss_res,type = "b",xlab = "Number of clusters(K)",
+     ylab = "WSS for Incident Response Times")
+plot(1:k.max,wss_trav,type = "b",xlab = "Number of clusters(K)",
+     ylab = "WSS for Incident Travel Times")
 
-km_com = kmeans(EMS_Richmond_10305_2012$COMMUNITYDISTRICT,centers=2,nstart=20)
-km_com2 = kmeans(EMS_Richmond_10305_2012$COMMUNITYDISTRICT,centers=3,nstart=20)
-km_pol = kmeans(EMS_Richmond_10305_2012$POLICEPRECINCT,centers=2,nstart=20)
+km_res = kmeans(EMS_Richmond_10305_2012$INCIDENT_RESPONSE_SECONDS_QY,centers=2,nstart=20)
+km_trav = kmeans(EMS_Richmond_10305_2012$INCIDENT_TRAVEL_TM_SECONDS_QY,centers=2,nstart=20)
 
-plot(EMS_Richmond_10305_2012$COMMUNITYDISTRICT, col=(km_com$cluster+1), 
-     main="K-Means Clustering with K=2", xlab="", 
+plot(EMS_Richmond_10305_2012$INCIDENT_RESPONSE_SECONDS_QY, col=(km_res$cluster+1), 
+     main="K-Means with K=2 for Incident Response Times", xlab="", 
      ylab="", pch=20, cex=2)
-plot(EMS_Richmond_10305_2012$COMMUNITYDISTRICT, col=(km_com2$cluster+1), 
-     main="K-Means Clustering with K=3", xlab="", 
-     ylab="", pch=20, cex=2)
-plot(EMS_Richmond_10305_2012$POLICEPRECINCT, col=(km_pol$cluster+1), 
-     main="K-Means Clustering with K=2", xlab="", 
+plot(EMS_Richmond_10305_2012$INCIDENT_TRAVEL_TM_SECONDS_QY, col=(km_trav$cluster+1), 
+     main="K-Means with K=2 for Incident Travel Times", xlab="", 
      ylab="", pch=20, cex=2)
 
-table(km_com$cluster,EMS_Richmond_10305_2012$COMMUNITYDISTRICT)
-#      501  502  595
-#   1 1629 3892    0
-#   2    0    0   98
-table(km_com2$cluster,EMS_Richmond_10305_2012$COMMUNITYDISTRICT)
-#      501  502  595
-#   1    0    0   98
-#   2    0 3892    0
-#   3 1629    0    0
+table(km_res$cluster,EMS_Richmond_10305_2012$COMMUNITYDISTRICT)
+#    501  502  595
+# 1 1584 3442   94
+# 2    1    4    0
+table(km_res$cluster,EMS_Richmond_10305_2012$POLICEPRECINCT)
+#    120  122
+# 1 1609 3511
+# 2    1    4
+table(km_trav$cluster,EMS_Richmond_10305_2012$COMMUNITYDISTRICT)
+#    501  502  595
+# 1    0    1    0
+# 2 1585 3445   94
+table(km_trav$cluster,EMS_Richmond_10305_2012$POLICEPRECINCT)
+#    120  122
+# 1    0    1
+# 2 1610 3514
 
-table(km_pol$cluster,EMS_Richmond_10305_2012$POLICEPRECINCT)
-#      120  122
-#   1 1655    0
-#   2    0 3964
 
 
-
-
-table(EMS_Richmond_10305_2012$avg_temp)
-cat_avgtemp <- cut(EMS_Richmond_10305_2012$avg_temp, br=c(20,45,86.5), 
-                   labels=c('cold_temp','hot_temp'))
-queenssales <- as.factor(queenssales)
-summary(cat_avgtemp)
-table(cat_avgtemp)
-colnames(EMS_Richmond_10305_2012)
